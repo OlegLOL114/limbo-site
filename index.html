@@ -1,0 +1,511 @@
+<!doctype html><html><head><title>Limbo Studio</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}</style></head><body><title>Limbo Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@300;600;900&family=Manrope:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: одна липкая сцена в тумане (ноутбук + кольцо букв LIMBO), под ней спокойные блоки на чёрном. Монохром, один тёплый «фонарь». */
+:root {
+  --void: #0b0b0c;
+  --ash: #17171a;
+  --smoke: #8a8a90;
+  --bone: #e9e6df;
+  --lamp: #f3e7c9;
+  --line: rgba(233, 230, 223, .14);
+  --f-display: "Unbounded", "Arial Black", system-ui, sans-serif;
+  --f-body: "Manrope", "Helvetica Neue", Arial, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { background: var(--void); }
+body {
+  background: var(--void);
+  color: var(--bone);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.55;
+  overflow-x: hidden;
+}
+body::before {
+  content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px);
+  z-index: 50; background: var(--void);
+}
+a { color: inherit; }
+.wrap {
+  max-width: 1160px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* ---------- header ---------- */
+.top {
+  position: fixed; top: env(safe-area-inset-top, 0px); left: 0; right: 0; z-index: 40;
+  mix-blend-mode: difference;
+}
+.top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 18px; }
+.mark { font-family: var(--f-display); font-weight: 900; letter-spacing: .18em; font-size: 15px; text-decoration: none; }
+.top nav { display: flex; gap: 22px; font-family: var(--f-mono); font-size: 12px; text-transform: uppercase; letter-spacing: .12em; }
+.top nav a { text-decoration: none; opacity: .8; }
+.top nav a:hover, .top nav a:focus-visible { opacity: 1; }
+@media (max-width: 560px) { .top nav a:not(.cta-link) { display: none; } }
+
+/* ---------- scrolly stage ---------- */
+.scrolly { position: relative; height: 520vh; }
+.stage {
+  position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden;
+  background:
+    radial-gradient(60% 50% at 50% 46%, rgba(243, 231, 201, .16), transparent 70%),
+    radial-gradient(120% 80% at 50% 110%, #1d1d21, var(--void) 70%);
+}
+.fog { position: absolute; inset: -20%; pointer-events: none; filter: blur(40px); opacity: .55; }
+.fog i { position: absolute; border-radius: 50%; background: radial-gradient(closest-side, rgba(233, 230, 223, .22), transparent); }
+.fog i:nth-child(1) { width: 60vmax; height: 30vmax; left: -10%; top: 55%; animation: drift 26s ease-in-out infinite alternate; }
+.fog i:nth-child(2) { width: 50vmax; height: 26vmax; right: -12%; top: 20%; animation: drift 34s ease-in-out infinite alternate-reverse; }
+.fog i:nth-child(3) { width: 70vmax; height: 22vmax; left: 15%; bottom: -8%; animation: drift 40s ease-in-out infinite alternate; }
+@keyframes drift { to { transform: translate3d(12vw, -4vh, 0); } }
+.grain {
+  position: absolute; inset: 0; pointer-events: none; opacity: .12; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+.vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, .75)); }
+
+/* кольцо букв на заднем плане */
+.ring-scene { position: absolute; inset: 0; perspective: 1200px; perspective-origin: 50% 42%; }
+.ring {
+  position: absolute; left: 50%; top: 44%; width: 0; height: 0;
+  transform-style: preserve-3d;
+}
+.ring span {
+  position: absolute; left: 0; top: 0;
+  font-family: var(--f-display); font-weight: 900; line-height: 1;
+  font-size: clamp(120px, 26vw, 360px);
+  color: rgba(233, 230, 223, calc(.07 + var(--fill, 0)));
+  text-shadow: 0 0 60px rgba(243, 231, 201, .08);
+  transform-origin: 50% 50%;
+  translate: -50% -50%;
+  backface-visibility: visible;
+  will-change: transform;
+}
+
+/* ноутбук */
+.scene { position: absolute; inset: 0; perspective: 1500px; perspective-origin: 50% 40%; }
+.laptop {
+  --w: clamp(230px, 46vw, 460px);
+  --d: calc(var(--w) * .66);
+  --t: calc(var(--w) * .028);
+  --open: 0deg;
+  position: absolute; left: 50%; top: 46%; width: 0; height: 0;
+  transform-style: preserve-3d; will-change: transform;
+}
+.deck {
+  position: absolute; width: var(--w); height: var(--d);
+  left: calc(var(--w) / -2); top: calc(var(--d) / -2);
+  transform-style: preserve-3d;
+  transform: rotateX(90deg);
+}
+.face { position: absolute; inset: 0; }
+.deck-top {
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, transparent 72%, rgba(0,0,0,.25) 72% 73%, transparent 73%),
+    linear-gradient(#2a2a2f, #222226);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.07);
+}
+.keys {
+  position: absolute; left: 7%; right: 7%; top: 8%; height: 52%;
+  border-radius: 6px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 calc(7.1% - 2px), #121214 calc(7.1% - 2px) 7.1%),
+    repeating-linear-gradient(180deg, transparent 0 calc(16.66% - 2px), #121214 calc(16.66% - 2px) 16.66%),
+    #303036;
+  box-shadow: inset 0 0 0 2px #121214;
+}
+.pad { position: absolute; left: 34%; right: 34%; top: 66%; height: 27%; border-radius: 6px; background: #29292e; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); }
+.deck-bottom { border-radius: 10px; background: #111113; transform: translateZ(calc(var(--t) * -1)); }
+.edge { position: absolute; background: linear-gradient(90deg, #3a3a40, #1b1b1f 40%, #3a3a40); }
+.edge.front { left: 0; right: 0; bottom: 0; height: var(--t); transform-origin: 50% 100%; transform: rotateX(90deg); }
+.edge.back  { left: 0; right: 0; top: 0; height: var(--t); transform-origin: 50% 0; transform: rotateX(-90deg); }
+.edge.left  { top: 0; bottom: 0; left: 0; width: var(--t); transform-origin: 0 50%; transform: rotateY(-90deg); background: #26262a; }
+.edge.right { top: 0; bottom: 0; right: 0; width: var(--t); transform-origin: 100% 50%; transform: rotateY(90deg); background: #26262a; }
+
+.lid {
+  position: absolute; left: 0; top: 0; width: var(--w); height: calc(var(--d) * .97);
+  transform-style: preserve-3d; transform-origin: 50% 0;
+  transform: translateZ(1px) rotateX(var(--open));
+}
+.lid-back {
+  border-radius: 10px; display: grid; place-items: center;
+  background: radial-gradient(circle at 50% 45%, #3a3a40, #1c1c20 70%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+  transform: translateZ(var(--t));
+}
+.lid-back b {
+  font-family: var(--f-display); font-weight: 900; letter-spacing: .22em;
+  font-size: calc(var(--w) * .085); color: rgba(243, 231, 201, .85);
+  text-shadow: 0 0 18px rgba(243, 231, 201, .45);
+}
+.lid-mid { border-radius: 10px; background: #19191c; transform: translateZ(calc(var(--t) / 2)); }
+.lid-screen {
+  border-radius: 10px; padding: 4%;
+  background: #0d0d0f;
+  transform: rotateX(180deg);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+}
+.screen {
+  position: relative; width: 100%; height: 100%; border-radius: 4px; overflow: hidden;
+  background: #050506;
+  font-family: var(--f-mono); font-size: calc(var(--w) * .026); color: var(--bone);
+}
+.screen::after { content: ""; position: absolute; inset: 0; background: linear-gradient(130deg, rgba(255,255,255,.07), transparent 40%); pointer-events: none; }
+.scr { position: absolute; inset: 0; padding: 7%; opacity: 0; transition: opacity .5s; display: flex; flex-direction: column; gap: 6%; }
+.screen[data-s="0"] .s0, .screen[data-s="1"] .s1, .screen[data-s="2"] .s2, .screen[data-s="3"] .s3 { opacity: 1; }
+.s0 { justify-content: center; align-items: center; }
+.s0 b { font-family: var(--f-display); font-weight: 900; letter-spacing: .3em; font-size: 2.6em; color: var(--lamp); text-shadow: 0 0 24px rgba(243,231,201,.5); }
+.s0 small { opacity: .5; letter-spacing: .2em; }
+.row { display: flex; justify-content: space-between; gap: 8px; }
+.live { color: #ff5b4f; }
+.live::before { content: "● "; }
+.cam {
+  flex: 1; border-radius: 3px; position: relative;
+  background: radial-gradient(40% 60% at 50% 60%, rgba(243,231,201,.35), transparent 70%), #121215;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+}
+.cam::before, .cam::after { content: ""; position: absolute; background: rgba(233,230,223,.18); }
+.cam::before { left: 33%; top: 0; bottom: 0; width: 1px; box-shadow: calc(var(--w) * .25) 0 0 rgba(233,230,223,.18); }
+.cam::after { top: 33%; left: 0; right: 0; height: 1px; box-shadow: 0 calc(var(--w) * .09) 0 rgba(233,230,223,.18); }
+.meter { height: 6px; border-radius: 3px; background: #1d1d21; overflow: hidden; }
+.meter i { display: block; height: 100%; width: 78%; background: var(--lamp); }
+.big { font-family: var(--f-display); font-weight: 600; font-size: 2.1em; line-height: 1.1; }
+.dim { opacity: .55; }
+.glow {
+  position: absolute; left: 50%; top: 46%; width: 70vmin; height: 40vmin; translate: -50% -10%;
+  border-radius: 50%; background: radial-gradient(closest-side, rgba(0,0,0,.65), transparent);
+  filter: blur(10px); pointer-events: none;
+}
+
+/* подписи */
+.caps { position: absolute; left: 0; right: 0; bottom: 0; }
+.caps .wrap { position: relative; height: 34vh; min-height: 210px; }
+.cap {
+  position: absolute; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: 7vh;
+  max-width: 560px;
+  opacity: 0; transform: translateY(18px) rotateX(35deg); transform-origin: 50% 100%;
+  transition: opacity .6s, transform .7s cubic-bezier(.2,.7,.2,1);
+  pointer-events: none;
+}
+.cap.on { opacity: 1; transform: none; pointer-events: auto; }
+.eyebrow { font-family: var(--f-mono); font-size: 12px; letter-spacing: .16em; text-transform: uppercase; color: var(--smoke); }
+.cap h1, .cap h2 {
+  font-family: var(--f-display); font-weight: 600; text-wrap: balance;
+  font-size: clamp(28px, 4.6vw, 56px); line-height: 1.04; margin: 10px 0 12px; letter-spacing: -.01em;
+}
+.cap p { margin: 0; color: rgba(233,230,223,.75); max-width: 46ch; }
+.rail {
+  position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); top: 50%; translate: 0 -50%;
+  display: flex; flex-direction: column; gap: 14px;
+  font-family: var(--f-mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+}
+.rail span { display: flex; align-items: center; gap: 10px; justify-content: flex-end; opacity: .35; transition: opacity .4s; }
+.rail span::after { content: ""; width: 18px; height: 1px; background: currentColor; transition: width .4s; }
+.rail span.on { opacity: 1; }
+.rail span.on::after { width: 38px; }
+@media (max-width: 720px) {
+  .rail { display: none; }
+  .laptop { top: 38%; --w: clamp(220px, 72vw, 360px); }
+  .ring { top: 38%; }
+  .cap { bottom: 5vh; }
+}
+.hint { position: absolute; left: 50%; bottom: 18px; translate: -50% 0; font-family: var(--f-mono); font-size: 11px; letter-spacing: .2em; color: var(--smoke); text-transform: uppercase; transition: opacity .4s; }
+
+/* ---------- content below ---------- */
+section.block { padding-block: clamp(72px, 12vw, 140px); border-top: 1px solid var(--line); }
+.block h2 {
+  font-family: var(--f-display); font-weight: 600; text-wrap: balance;
+  font-size: clamp(30px, 5vw, 60px); line-height: 1.04; margin: 12px 0 40px; max-width: 18ch;
+}
+.folds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; perspective: 1100px; }
+@media (max-width: 860px) { .folds { grid-template-columns: 1fr; } }
+.fold {
+  min-width: 0; padding: 28px 26px 30px; border: 1px solid var(--line); border-radius: 4px;
+  background: linear-gradient(180deg, var(--ash), var(--void));
+  transform-origin: 50% 0; will-change: transform;
+}
+.fold h3 { font-family: var(--f-display); font-weight: 600; font-size: 20px; margin: 18px 0 10px; }
+.fold p { margin: 0; color: rgba(233,230,223,.72); }
+.tag { font-family: var(--f-mono); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--lamp); }
+
+.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; counter-reset: s; }
+.steps li {
+  counter-increment: s; display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 20px;
+  padding-block: 26px; border-bottom: 1px solid var(--line);
+}
+.steps li::before { content: "0" counter(s); font-family: var(--f-mono); color: var(--smoke); padding-top: 4px; }
+.steps b { font-family: var(--f-display); font-weight: 600; font-size: clamp(18px, 2.4vw, 26px); display: block; margin-bottom: 6px; }
+.steps span { color: rgba(233,230,223,.72); }
+
+.apply { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; align-items: start; }
+@media (max-width: 860px) { .apply { grid-template-columns: 1fr; } }
+form { display: grid; gap: 14px; }
+label { font-family: var(--f-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--smoke); display: grid; gap: 8px; }
+input, select {
+  font: inherit; font-family: var(--f-body); font-size: 16px; text-transform: none; letter-spacing: 0;
+  color: var(--bone); background: var(--ash); border: 1px solid var(--line); border-radius: 3px; padding: 14px 14px;
+}
+input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid var(--lamp); outline-offset: 2px; }
+button {
+  font-family: var(--f-display); font-weight: 600; font-size: 15px; letter-spacing: .06em;
+  background: var(--bone); color: var(--void); border: 0; border-radius: 3px; padding: 16px 20px; cursor: pointer;
+  transition: background .2s;
+}
+button:hover { background: var(--lamp); }
+.note { font-size: 14px; color: var(--smoke); min-height: 1.5em; margin: 0; }
+footer { padding-block: 40px; border-top: 1px solid var(--line); font-family: var(--f-mono); font-size: 12px; color: var(--smoke); }
+footer .wrap { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.giant {
+  font-family: var(--f-display); font-weight: 900; font-size: clamp(80px, 22vw, 320px); line-height: .8; letter-spacing: -.02em;
+  color: rgba(233,230,223,.06); text-align: center; overflow: hidden; padding-block: 40px 0; margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fog i { animation: none; }
+  .cap, .scr { transition: none; }
+}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="#top">LIMBO</a>
+    <nav>
+      <a href="#terms">Условия</a>
+      <a href="#path">Как попасть</a>
+      <a class="cta-link" href="#apply">Заявка</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+  <div class="scrolly" id="scrolly">
+    <div class="stage">
+      <div class="ring-scene" aria-hidden="true"><div class="ring" id="ring"><span>L</span><span>I</span><span>M</span><span>B</span><span>O</span></div></div>
+      <div class="fog" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="glow" aria-hidden="true"></div>
+      <div class="scene" aria-hidden="true">
+        <div class="laptop" id="laptop">
+          <div class="deck">
+            <div class="face deck-bottom"></div>
+            <div class="edge front"></div><div class="edge back"></div><div class="edge left"></div><div class="edge right"></div>
+            <div class="face deck-top"><div class="keys"></div><div class="pad"></div></div>
+            <div class="lid">
+              <div class="face lid-screen">
+                <div class="screen" id="screen" data-s="0">
+                  <div class="scr s0"><b>LIMBO</b><small>STUDIO · BOOT</small></div>
+                  <div class="scr s1">
+                    <div class="row"><span class="live">LIVE</span><span class="dim">02:14:36</span></div>
+                    <div class="cam"></div>
+                    <div class="row dim"><span>свет 4800K</span><span>ключ 78%</span></div>
+                    <div class="meter"><i></i></div>
+                  </div>
+                  <div class="scr s2">
+                    <span class="dim">менеджер смены</span>
+                    <div class="big">Кадр собран.<br>Свет ровный.</div>
+                    <span class="dim">подсказки идут в отдельное окно</span>
+                  </div>
+                  <div class="scr s3">
+                    <span class="dim">расчётные периоды</span>
+                    <div class="big">1–15<br>16–31</div>
+                    <span class="dim">выплата два раза в месяц</span>
+                  </div>
+                </div>
+              </div>
+              <div class="face lid-mid"></div>
+              <div class="face lid-back"><b>LIMBO</b></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grain" aria-hidden="true"></div>
+      <div class="vignette" aria-hidden="true"></div>
+
+      <div class="rail" id="rail" aria-hidden="true">
+        <span class="on">Студия</span><span>Эфир</span><span>Команда</span><span>Выплаты</span>
+      </div>
+
+      <div class="caps">
+        <div class="cap on" data-i="0">
+          <div class="eyebrow">Limbo · студия онлайн-трансляций</div>
+          <h1>Работа из дома, где всё уже настроено</h1>
+          <p>Техника, свет и человек на связи. Ты приходишь в эфир, остальное мы берём на себя.</p>
+        </div>
+        <div class="cap" data-i="1">
+          <div class="eyebrow">Эфир</div>
+          <h2>Открываешь ноутбук и выходишь в кадр</h2>
+          <p>Ставим камеру и свет под твою комнату, проверяем картинку до первого эфира.</p>
+        </div>
+        <div class="cap" data-i="2">
+          <div class="eyebrow">Команда</div>
+          <h2>Рядом менеджер смены</h2>
+          <p>Подскажет по кадру, по свету и по графику. Обучение с нуля, без опыта тоже берём.</p>
+        </div>
+        <div class="cap" data-i="3">
+          <div class="eyebrow">Выплаты</div>
+          <h2>Два раза в месяц, по факту</h2>
+          <p>Периоды 1–15 и 16–конец месяца. Каждую выплату сверяем и показываем, из чего она сложилась.</p>
+        </div>
+      </div>
+      <div class="hint" id="hint">листай вниз</div>
+    </div>
+  </div>
+
+  <section class="block" id="terms">
+    <div class="wrap">
+      <div class="eyebrow">Условия</div>
+      <h2>Всё, что нужно для работы, складывается в один ноутбук</h2>
+      <div class="folds">
+        <article class="fold"><span class="tag">Техника</span><h3>Свет и камера</h3><p>Подбираем и настраиваем оборудование под комнату. Карту кадра размечаем вместе с тобой.</p></article>
+        <article class="fold"><span class="tag">Люди</span><h3>Менеджер и обучение</h3><p>Первые эфиры проходят с наставником. Дальше менеджер смены на связи в каждом эфире.</p></article>
+        <article class="fold"><span class="tag">Деньги</span><h3>Прозрачные выплаты</h3><p>Расчёт за 1–15 и за 16–конец месяца. Сверка заработка по каждому периоду.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="path">
+    <div class="wrap">
+      <div class="eyebrow">Как попасть</div>
+      <h2>Три шага до первого эфира</h2>
+      <ol class="steps">
+        <li><div><b>Заявка</b><span>Имя, контакт в Telegram и город. Отвечаем в течение дня.</span></div></li>
+        <li><div><b>Собеседование</b><span>Короткий созвон: рассказываем, как устроена работа, отвечаем на вопросы.</span></div></li>
+        <li><div><b>Настройка и старт</b><span>Ставим свет и камеру, проводим пробный эфир с наставником.</span></div></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="block" id="apply">
+    <div class="wrap apply">
+      <div>
+        <div class="eyebrow">Заявка</div>
+        <h2>Оставь контакт, мы напишем</h2>
+        <p class="note">Работаем только с совершеннолетними.</p>
+      </div>
+      <form id="form" novalidate>
+        <label for="f-name">Имя<input id="f-name" name="name" autocomplete="given-name" required></label>
+        <label for="f-tg">Telegram<input id="f-tg" name="tg" placeholder="@username" required></label>
+        <label for="f-city">Город<input id="f-city" name="city" autocomplete="address-level2"></label>
+        <button type="submit">Отправить заявку</button>
+        <p class="note" id="form-note" role="status"></p>
+      </form>
+    </div>
+  </section>
+
+  <p class="giant" aria-hidden="true">LIMBO</p>
+</main>
+
+<footer>
+  <div class="wrap"><span>Limbo Studio</span><span>© 2026</span></div>
+</footer>
+
+<script>
+(() => {
+  const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+  const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+  const mix = (a, b, t) => a + (b - a) * t;
+
+  const scrolly = document.getElementById('scrolly');
+  const laptop = document.getElementById('laptop');
+  const ring = document.getElementById('ring');
+  const letters = [...ring.children];
+  const screen = document.getElementById('screen');
+  const caps = [...document.querySelectorAll('.cap')];
+  const rail = [...document.querySelectorAll('#rail span')];
+  const hint = document.getElementById('hint');
+  const folds = [...document.querySelectorAll('.fold')];
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let target = 0, cur = 0, phase = -1;
+
+  // раскладка финального слова по реальной ширине букв
+  const word = { x: [0, 0, 0, 0, 0], scale: 1 };
+  function measure() {
+    const w = letters.map(el => el.offsetWidth);
+    const gap = w[0] * .04;
+    const total = w.reduce((s, v) => s + v, 0) + gap * 4;
+    word.scale = Math.min(1, innerWidth * .88 / total);
+    let x = -total / 2;
+    w.forEach((v, i) => { word.x[i] = (x + v / 2) * word.scale; x += v + gap; });
+  }
+  measure();
+  addEventListener('resize', measure);
+  document.fonts && document.fonts.ready.then(measure);
+
+  function progress() {
+    const r = scrolly.getBoundingClientRect();
+    const span = scrolly.offsetHeight - innerHeight;
+    return clamp(-r.top / span, 0, 1);
+  }
+
+  function render(p) {
+    // фазы: 0 крутится закрытый · 1 открывается · 2 разворот к зрителю · 3 складывается обратно
+    const open = smooth(.18, .46, p) * (1 - smooth(.78, .95, p));
+    const face = smooth(.46, .7, p);
+    const fold = smooth(.76, 1, p);
+
+    const spin = mix(mix(-30, 360 - 28, smooth(0, .46, p)), 360, face) - fold * 18;
+    const tilt = mix(mix(58, 14, smooth(.12, .46, p)), 8, face) + fold * 56;
+    const scale = mix(1, 1.18, face) * mix(1, .7, fold);
+    const lift = Math.sin(p * Math.PI * 3) * 6;
+
+    laptop.style.transform = `translate3d(0, ${lift + (open * .09 + fold * .12) * innerHeight}px, 0) rotateX(${-tilt}deg) rotateY(${spin}deg) scale(${scale})`;
+    laptop.style.setProperty('--open', `${open * 104}deg`);
+
+    // кольцо букв: вращается, к финалу складывается в ровное слово над ноутбуком
+    const R = Math.min(innerWidth, 1100) * .52;
+    const rot = p * 520;
+    letters.forEach((el, i) => {
+      const a = ((((i * 72 + rot + 180) % 360) + 360) % 360 - 180) * (1 - fold);
+      const s = mix(1, word.scale, fold);
+      el.style.transform = `translateY(${-fold * innerHeight * .1}px) rotateY(${a}deg) translateZ(${R * (1 - fold)}px) translateX(${word.x[i] * fold}px) scale(${s})`;
+      el.style.opacity = mix(.8, 1, fold);
+      el.style.setProperty('--fill', (fold * .1).toFixed(3));
+    });
+
+    const ph = p < .2 ? 0 : p < .48 ? 1 : p < .74 ? 2 : 3;
+    if (ph !== phase) {
+      phase = ph;
+      caps.forEach((c, i) => c.classList.toggle('on', i === ph));
+      rail.forEach((c, i) => c.classList.toggle('on', i === ph));
+      screen.dataset.s = ph;
+    }
+    hint.style.opacity = p > .03 ? 0 : 1;
+  }
+
+  function folding() {
+    const vh = innerHeight;
+    folds.forEach((el, i) => {
+      const r = el.getBoundingClientRect();
+      const t = clamp((vh - r.top) / (vh * .55) - i * .12, 0, 1);
+      const e = 1 - Math.pow(1 - t, 3);
+      el.style.transform = t >= 1 ? '' : `rotateX(${(1 - e) * -70}deg) translateY(${(1 - e) * 30}px)`;
+      el.style.opacity = mix(.25, 1, e);
+    });
+  }
+
+  function tick() {
+    target = progress();
+    cur = reduce ? target : cur + (target - cur) * .12;
+    if (Math.abs(target - cur) < .0005) cur = target;
+    render(cur);
+    folding();
+    requestAnimationFrame(tick);
+  }
+  render(0);
+  requestAnimationFrame(tick);
+
+  document.getElementById('form').addEventListener('submit', e => {
+    e.preventDefault();
+    const f = e.target, note = document.getElementById('form-note');
+    if (!f.name.value.trim() || !f.tg.value.trim()) { note.textContent = 'Заполни имя и Telegram, чтобы мы могли ответить.'; return; }
+    note.textContent = 'Это демо-страница: заявка пока никуда не отправляется. Подключим форму к таблице найма, когда скажешь.';
+  });
+})();
+</script>
+</body></html>
